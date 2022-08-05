@@ -8,6 +8,26 @@ import { api } from '../services/api';
 import { Loading } from '../components/Loading';
 import { Error } from '../components/Error';
 
+interface Image {
+  title: string;
+  description: string;
+  url: string;
+  ts: number;
+  id: string;
+}
+
+interface ImagesResponse {
+  data: Image[];
+  after?: string;
+}
+
+const fetchImages = async ({ pageParam = null }): Promise<ImagesResponse> => {
+  const response = await api.get('api/images', {
+    params: { after: pageParam },
+  });
+  return response.data as ImagesResponse;
+};
+
 export default function Home(): JSX.Element {
   const {
     data,
@@ -18,18 +38,28 @@ export default function Home(): JSX.Element {
     hasNextPage,
   } = useInfiniteQuery(
     'images',
-    // TODO AXIOS REQUEST WITH PARAM
-    ,
-    // TODO GET AND RETURN NEXT PAGE PARAM
+    // AXIOS REQUEST WITH PARAM
+    fetchImages,
+    // GET AND RETURN NEXT PAGE PARAM
+    {
+      getNextPageParam: lastPage => lastPage?.after ?? null,
+    }
   );
 
   const formattedData = useMemo(() => {
-    // TODO FORMAT AND FLAT DATA ARRAY
+    // FORMAT AND FLAT DATA ARRAY
+    // const pages = data?.pages.map(page => page.data);
+    // const items = pages?.map(item => item);
+    const items = data?.pages.flatMap(page => page.data.flat());
+
+    return items;
   }, [data]);
 
-  // TODO RENDER LOADING SCREEN
+  // RENDER LOADING SCREEN
+  if (isLoading) return <Loading />;
 
-  // TODO RENDER ERROR SCREEN
+  // RENDER ERROR SCREEN
+  if (isError) return <Error />;
 
   return (
     <>
@@ -37,7 +67,12 @@ export default function Home(): JSX.Element {
 
       <Box maxW={1120} px={20} mx="auto" my={20}>
         <CardList cards={formattedData} />
-        {/* TODO RENDER LOAD MORE BUTTON IF DATA HAS NEXT PAGE */}
+        {/* RENDER LOAD MORE BUTTON IF DATA HAS NEXT PAGE */}
+        {hasNextPage && (
+          <Button type="button" marginTop="10" onClick={() => fetchNextPage()}>
+            {isFetchingNextPage ? 'Carregando' : 'Carregar mais'}
+          </Button>
+        )}
       </Box>
     </>
   );
